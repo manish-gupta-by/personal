@@ -63,9 +63,9 @@ public class EmployeeService implements IEmployeeService {
                 .subscribeOn(Schedulers.newBoundedElastic(3, 10, "producer-" + appTopic))
                 .subscribe(employeeInput1 -> {
                     try {
-                        employeeKafkaProducer.produce(String.valueOf(employeeInput1.getEmp_id()), objectMapper.writeValueAsString(employeeInput1), appTopic);
+                        employeeKafkaProducer.produce(employeeInput1.getEmp_id(), objectMapper.writeValueAsString(employeeInput1), appTopic);
                     } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
+                        log.error("error while converting json to employeeInput object {}", e.getMessage());
                     }
                 });
         return response;

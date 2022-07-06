@@ -3,6 +3,7 @@ package com.by.kafka;
 import com.by.model.EmployeeInput;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jnr.ffi.annotations.In;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,19 +24,19 @@ public class EmployeeKafkaProducer {
     KafkaProducerConfig kafkaProducerConfig;
 
     @Autowired
-    KafkaSender<String, String> kafkaSender;
+    KafkaSender<Integer, String> kafkaSender;
 
     @Autowired
     ObjectMapper objectMapper;
 
-    public void produce(String key, String value, String topic) throws JsonProcessingException {
+    public void produce(Integer key, String value, String topic) throws JsonProcessingException {
 
         kafkaSender.send(Mono.just(getRecordPublisher(topic, key, value)))
-                .doOnError(e -> log.error("Error occurred: {}", e.getMessage()))
+                .doOnError(e -> log.error("Error while sending record to kafka: {}", e.getMessage()))
                 .subscribe();
     }
 
-    private SenderRecord<String, String, String> getRecordPublisher(String topic, String key, String value) throws JsonProcessingException {
+    private SenderRecord<Integer, String, Integer> getRecordPublisher(String topic, Integer key, String value) throws JsonProcessingException {
         return SenderRecord.create(
                 new ProducerRecord<>(topic,
                         key,

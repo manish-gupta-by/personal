@@ -4,6 +4,7 @@ import com.by.model.Employee;
 import com.by.model.EmployeeInput;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jnr.ffi.annotations.In;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,9 +42,8 @@ public class EmployeeKafkaConsumer {
     @EventListener({ApplicationReadyEvent.class})
     public void consume() {
         Scheduler scheduler = Schedulers.newBoundedElastic(3, 10, "consumer-" + kafkaConsumerConfig.getEmpTopic());
-        Flux<ReceiverRecord<String, String>> receiverRecord = KafkaReceiver
-                .create(kafkaConsumerConfig.receiverOptions()).receive();
-
+        Flux<ReceiverRecord<Integer , String>> receiverRecord = KafkaReceiver
+                .<Integer , String>create(kafkaConsumerConfig.receiverOptions()).receive();
 
         receiverRecord
                 .groupBy(m -> m.receiverOffset().topicPartition())
@@ -51,14 +51,18 @@ public class EmployeeKafkaConsumer {
                     return groupedFluxOnPartition.subscribeOn(scheduler)
                             .flatMap(record -> {
                                 log.info("received record: {}", record);
+
                                 try {
                                     employeeKafkaProducer.produce(record.key(), record.value(), validateRecord(record.value()) ? empTopic : dlqTopic);
                                 } catch (JsonProcessingException e) {
-                                    throw new RuntimeException(e);
+                                    return Mono.error(e);
+                                } catch(Exception e){
+                                    return Mono.error(e);
                                 }
                                 return Mono.just(record);
                             });
                 })
+                .doOnError(e -> log.error("error while consuming from kafka topic {}, {}", kafkaConsumerConfig.getEmpTopic(), e.getMessage()))
                 .subscribe();
 
     }

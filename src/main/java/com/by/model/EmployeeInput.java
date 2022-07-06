@@ -14,7 +14,7 @@ import javax.sound.midi.Soundbank;
 @Data
 public class EmployeeInput {
 
-    int emp_id;
+    Integer emp_id;
     String emp_name;
     String emp_city;
     String emp_phone;

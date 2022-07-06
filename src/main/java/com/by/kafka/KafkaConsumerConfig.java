@@ -1,5 +1,6 @@
 package com.by.kafka;
 
+import jnr.ffi.annotations.In;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,7 +46,7 @@ public class KafkaConsumerConfig {
         });
         return result;
     }
-    public ReceiverOptions<String, String> receiverOptions(){
+    public ReceiverOptions<Integer, String> receiverOptions(){
         if (this.consumer == null) {
             this.consumer = new HashMap();
         } else {
@@ -53,7 +54,7 @@ public class KafkaConsumerConfig {
         }
         consumer.put("key.deserializer", JsonDeserializer.class.getName());
         consumer.put("value.deserializer", JsonDeserializer.class.getName());
-        return ReceiverOptions.<String, String>create(consumer)
+        return ReceiverOptions.<Integer, String>create(consumer)
                 .subscription(Collections.singleton(appTopic))
                 .addAssignListener(p -> log.info("Group partition assigned: {}", p))
                 .addAssignListener(p -> log.info("Group partition revoked: {}", p));
