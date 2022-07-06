@@ -63,7 +63,6 @@ public class EmployeeService implements IEmployeeService {
                 .subscribeOn(Schedulers.newBoundedElastic(3, 10, "producer-" + appTopic))
                 .subscribe(employeeInput1 -> {
                     try {
-                        log.info("service---{}", Thread.currentThread());
                         employeeKafkaProducer.produce(String.valueOf(employeeInput1.getEmp_id()), objectMapper.writeValueAsString(employeeInput1), appTopic);
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(e);

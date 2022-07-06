@@ -30,15 +30,9 @@ public class EmployeeKafkaProducer {
 
     public void produce(String key, String value, String topic) throws JsonProcessingException {
 
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        log.info("inside produce {}", Thread.currentThread());
         kafkaSender.send(Mono.just(getRecordPublisher(topic, key, value)))
                 .doOnError(e -> log.error("Error occurred: {}", e.getMessage()))
-                .subscribe(t -> log.info("inside produce subscribe {}", Thread.currentThread()));
+                .subscribe();
     }
 
     private SenderRecord<String, String, String> getRecordPublisher(String topic, String key, String value) throws JsonProcessingException {
