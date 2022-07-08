@@ -2,7 +2,7 @@ package com.by.service;
 
 import com.by.kafka.EmployeeKafkaProducer;
 import com.by.model.Employee;
-import com.by.model.EmployeeInput;
+import com.by.model.EmployeeDTO;
 import com.by.model.EmployeeSkill;
 import com.by.model.Status;
 import com.by.repository.EmployeeRepository;
@@ -38,24 +38,24 @@ public class EmployeeService implements IEmployeeService {
     ObjectMapper objectMapper;
 
     @Override
-    public Mono<EmployeeInput> createEmployee(EmployeeInput employeeInput) {
-        Mono<EmployeeInput> response = employeeRepository.findByEmpId(employeeInput.getEmp_id())
+    public Mono<EmployeeDTO> createEmployee(EmployeeDTO employeeDTO) {
+        Mono<EmployeeDTO> response = employeeRepository.findByEmpId(employeeDTO.getEmp_id())
                 .flatMap(emp -> {
-                    employeeInput.setStatus(Status.EXISTS.toString());
-                    return Mono.just(employeeInput);
+                    employeeDTO.setStatus(Status.EXISTS.toString());
+                    return Mono.just(employeeDTO);
                 })
                 .switchIfEmpty(Mono.defer(() -> {
-                    employeeInput.setStatus(Status.CREATED.toString());
+                    employeeDTO.setStatus(Status.CREATED.toString());
                     return employeeRepository
-                            .save(new Employee(employeeInput.getEmp_id(),
-                                    employeeInput.getEmp_name(),
-                                    employeeInput.getEmp_city(),
-                                    employeeInput.getEmp_phone()))
+                            .save(new Employee(employeeDTO.getEmp_id(),
+                                    employeeDTO.getEmp_name(),
+                                    employeeDTO.getEmp_city(),
+                                    employeeDTO.getEmp_phone()))
                             .then(employeeSkillRepository.save(
-                                    new EmployeeSkill(employeeInput.getEmp_id()
-                                            , employeeInput.getJava_exp()
-                                            , employeeInput.getSpring_exp())))
-                            .thenReturn(employeeInput).log();
+                                    new EmployeeSkill(employeeDTO.getEmp_id()
+                                            , employeeDTO.getJava_exp()
+                                            , employeeDTO.getSpring_exp())))
+                            .thenReturn(employeeDTO).log();
                 }))
                 .doOnError(e -> log.error("Error while fetching employee records {}",e.getMessage()));
 
@@ -70,6 +70,30 @@ public class EmployeeService implements IEmployeeService {
                 });
         return response;
 
+    }
+
+    @Override
+    public Flux<EmployeeDTO> getEmployees(EmployeeSkill employeeSkill) {
+
+        Flux<EmployeeSkill> employeeSkills = employeeSkillRepository.findAll().log();
+        if(Objects.nonNull(employeeSkill.getJavaExp())){
+            employeeSkills = employeeSkills.filter(e -> {
+                return e.getJavaExp().equals(employeeSkill.getJavaExp());
+            });
+        }
+        if(Objects.nonNull(employeeSkill.getSpringExp())){
+            employeeSkills = employeeSkills.filter(e -> e.getSpringExp().equals(employeeSkill.getSpringExp()));
+        }
+        employeeSkills = employeeSkills.sort((e1, e2) -> e1.getEmp_id() - e2.getEmp_id());
+
+
+        Flux<Employee> employeesWithSkills = employeeSkills
+                .map(employeeSkill1 -> employeeSkill1.getEmp_id())
+                .collectList()
+                .flatMapMany(list -> employeeRepository.findAllByEmpIds(list))
+                .sort((e1, e2) -> e1.getEmp_id() - e2.getEmp_id());
+        return employeesWithSkills.zipWith(employeeSkills)
+                .flatMap(tuple -> Flux.just(new EmployeeDTO(tuple.getT1(), tuple.getT2()))).log();
     }
 
 

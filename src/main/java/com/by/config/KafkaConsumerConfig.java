@@ -1,29 +1,32 @@
-package com.by.kafka;
+package com.by.config;
 
+import jnr.ffi.annotations.In;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.support.serializer.JsonSerializer;
-import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.PostMapping;
-import reactor.kafka.sender.KafkaSender;
-import reactor.kafka.sender.SenderOptions;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import reactor.kafka.receiver.ReceiverOptions;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @Configuration
 @ConfigurationProperties(prefix = "kafka")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class KafkaProducerConfig {
-    Map<String, Object> producer;
+public class KafkaConsumerConfig {
+
+    Map<String, Object> consumer;
+
+    @Value("${kafka.valid.employee.topic}")
+    String empTopic;
 
     @Value("${kafka.employee.topic}")
     String appTopic;
@@ -43,16 +46,17 @@ public class KafkaProducerConfig {
         });
         return result;
     }
-
-    @Bean
-    public KafkaSender kafkaSender(){
-        if (this.producer == null) {
-            this.producer = new HashMap();
+    public ReceiverOptions<Integer, String> receiverOptions(){
+        if (this.consumer == null) {
+            this.consumer = new HashMap();
         } else {
-            this.producer = this.flatten(this.producer);
+            this.consumer = this.flatten(this.consumer);
         }
-        producer.put("key.serializer", JsonSerializer.class.getName());
-        producer.put("value.serializer", JsonSerializer.class.getName());
-        return KafkaSender.create(SenderOptions.create(producer));
+        consumer.put("key.deserializer", JsonDeserializer.class.getName());
+        consumer.put("value.deserializer", JsonDeserializer.class.getName());
+        return ReceiverOptions.<Integer, String>create(consumer)
+                .subscription(Collections.singleton(appTopic))
+                .addAssignListener(p -> log.info("Group partition assigned: {}", p))
+                .addAssignListener(p -> log.info("Group partition revoked: {}", p));
     }
 }

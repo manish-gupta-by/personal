@@ -1,10 +1,9 @@
 package com.by.kafka;
 
-import com.by.model.Employee;
-import com.by.model.EmployeeInput;
+import com.by.config.KafkaConsumerConfig;
+import com.by.model.EmployeeDTO;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jnr.ffi.annotations.In;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -69,20 +68,20 @@ public class EmployeeKafkaConsumer {
 
     private boolean validateRecord(String value) throws JsonProcessingException {
 
-        EmployeeInput employeeInput = objectMapper.readValue(value, EmployeeInput.class);
-        if (Objects.isNull(employeeInput.getEmp_name())) {
+        EmployeeDTO employeeDTO = objectMapper.readValue(value, EmployeeDTO.class);
+        if (Objects.isNull(employeeDTO.getEmp_name())) {
             return false;
         }
-        if (Objects.isNull(employeeInput.getEmp_city())) {
+        if (Objects.isNull(employeeDTO.getEmp_city())) {
             return false;
         }
-        if (Objects.isNull(employeeInput.getEmp_phone())) {
+        if (Objects.isNull(employeeDTO.getEmp_phone())) {
             return false;
         }
-        if (Objects.isNull(employeeInput.getJava_exp())) {
+        if (Objects.isNull(employeeDTO.getJava_exp())) {
             return false;
         }
-        if (Objects.isNull(employeeInput.getSpring_exp())) {
+        if (Objects.isNull(employeeDTO.getSpring_exp())) {
             return false;
         }
         return true;
