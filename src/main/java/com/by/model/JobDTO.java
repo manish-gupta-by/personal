@@ -4,10 +4,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class JobDTO {
+public class JobDTO implements Serializable {
 
     Integer job_id;
 
@@ -19,11 +21,11 @@ public class JobDTO {
 
     String status;
 
-    public JobDTO(Job jobDb, Status status) {
+    public JobDTO(Job jobDb, String status) {
         this.job_id = jobDb.getJobId();
         this.job_name = jobDb.getJobName();
         this.java_exp = jobDb.getJavaExp();
         this.spring_exp = jobDb.getSpringExp();
-        this.status = status.toString();
+        this.status = status;
     }
 }

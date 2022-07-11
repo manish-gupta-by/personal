@@ -11,4 +11,6 @@ public interface IJobService {
     public Mono<JobDTO> createJobProfile(JobDTO job);
 
     Flux<EmployeeDTO> getEmployees(int jobId);
+
+    Mono<JobDTO> getJobProfile(Integer job_id);
 }
