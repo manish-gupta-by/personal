@@ -1,5 +1,6 @@
 package com.by.service;
 
+import com.by.exceptions.NoEmployeeWithSkillFound;
 import com.by.kafka.EmployeeKafkaProducer;
 import com.by.model.Employee;
 import com.by.model.EmployeeDTO;
@@ -40,10 +41,14 @@ public class EmployeeService implements IEmployeeService {
     @Override
     public Mono<EmployeeDTO> createEmployee(EmployeeDTO employeeDTO) {
         Mono<EmployeeDTO> response = employeeRepository.findByEmpId(employeeDTO.getEmp_id())
-                .flatMap(emp -> {
-                    employeeDTO.setStatus(Status.EXISTS.toString());
-                    return Mono.just(employeeDTO);
-                })
+                .flatMap(emp ->
+                        employeeSkillRepository.findOneByEmpId(emp.getEmp_id())
+                                .switchIfEmpty(Mono.error(new RuntimeException("Partial record")))
+                                .map(empSkill -> {
+                                    EmployeeDTO empDTO = new EmployeeDTO(emp, empSkill);
+                                    empDTO.setStatus(Status.EXISTS.toString());
+                                    return empDTO;
+                                }))
                 .switchIfEmpty(Mono.defer(() -> {
                     employeeDTO.setStatus(Status.CREATED.toString());
                     return employeeRepository
@@ -57,7 +62,11 @@ public class EmployeeService implements IEmployeeService {
                                             , employeeDTO.getSpring_exp())))
                             .thenReturn(employeeDTO).log();
                 }))
-                .doOnError(e -> log.error("Error while fetching employee records {}",e.getMessage()));
+                .onErrorMap(e -> {
+                    log.error("Error while fetching employee records {}", e.getMessage());
+                    return e;
+                });
+
 
         response
                 .subscribeOn(Schedulers.newBoundedElastic(3, 10, "producer-" + appTopic))
@@ -76,12 +85,12 @@ public class EmployeeService implements IEmployeeService {
     public Flux<EmployeeDTO> getEmployees(EmployeeSkill employeeSkill) {
 
         Flux<EmployeeSkill> employeeSkills = employeeSkillRepository.findAll().log();
-        if(Objects.nonNull(employeeSkill.getJavaExp())){
+        if (Objects.nonNull(employeeSkill.getJavaExp())) {
             employeeSkills = employeeSkills.filter(e -> {
                 return e.getJavaExp().equals(employeeSkill.getJavaExp());
             });
         }
-        if(Objects.nonNull(employeeSkill.getSpringExp())){
+        if (Objects.nonNull(employeeSkill.getSpringExp())) {
             employeeSkills = employeeSkills.filter(e -> e.getSpringExp().equals(employeeSkill.getSpringExp()));
         }
         employeeSkills = employeeSkills.sort((e1, e2) -> e1.getEmp_id() - e2.getEmp_id());

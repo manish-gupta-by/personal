@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import javax.xml.ws.Response;
 
-//@RestControllerAdvice
+@RestControllerAdvice
 public class ExceptionHandlingController {
 
     @ExceptionHandler({JobIdNotFoundException.class, NoEmployeeWithSkillFound.class})
